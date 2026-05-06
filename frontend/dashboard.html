@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TPV Ortopedia - Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <h1>🦴 Ortopedia</h1>
+        <span id="bienvenida"></span>
+    </nav>
+
+    <div class="container">
+        <h2>¿Qué quieres hacer?</h2>
+        <div class="cards">
+            <div class="card" onclick="window.location.href='venta.html'">
+                <div class="icon">🛒</div>
+                <h3>Nueva Venta</h3>
+                <p>Cobrar a un cliente</p>
+            </div>
+            <div class="card" onclick="window.location.href='productos.html'">
+                <div class="icon">📦</div>
+                <h3>Productos</h3>
+                <p>Ver y gestionar productos</p>
+            </div>
+            <div class="card" onclick="window.location.href='ventas.html'">
+                <div class="icon">📋</div>
+                <h3>Historial</h3>
+                <p>Ver ventas anteriores</p>
+            </div>
+            <div class="card" onclick="cerrarSesion()">
+                <div class="icon">🚪</div>
+                <h3>Cerrar sesión</h3>
+                <p>Salir de la aplicación</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const nombre = localStorage.getItem("usuario_nombre");
+        const rol = localStorage.getItem("usuario_rol");
+        if (!nombre) window.location.href = "index.html";
+        document.getElementById("bienvenida").textContent = `Hola, ${nombre} (${rol})`;
+
+        function cerrarSesion() {
+            localStorage.clear();
+            window.location.href = "index.html";
+        }
+    </script>
+</body>
+</html>

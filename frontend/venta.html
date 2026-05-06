@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TPV Ortopedia - Nueva Venta</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <h1>🦴 Ortopedia</h1>
+        <div>
+            <span id="bienvenida"></span>
+            <button class="secondary" style="width:auto; margin-left:15px" onclick="window.location.href='dashboard.html'">← Volver</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:30px">
+
+            <!-- BUSCADOR DE PRODUCTOS -->
+            <div>
+                <h2 style="margin-bottom:15px">Buscar producto</h2>
+                <input type="text" id="buscador" placeholder="Buscar por código o nombre..." oninput="buscarProducto()" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:5px; font-size:1rem; margin-bottom:10px">
+                <div id="resultados"></div>
+            </div>
+
+            <!-- TICKET -->
+            <div>
+                <h2 style="margin-bottom:15px">Ticket</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Cant.</th>
+                            <th>Precio</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="ticket"></tbody>
+                </table>
+
+                <div style="background:white; padding:20px; border-radius:10px; margin-top:15px; box-shadow:0 2px 10px rgba(0,0,0,0.1)">
+                    <h3 style="margin-bottom:15px">Total: <span id="total">0.00</span>€</h3>
+
+                    <div class="form-group">
+                        <label>Tipo de pago</label>
+                        <select id="tipo_pago" onchange="toggleEfectivo()" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:5px; font-size:1rem">
+                            <option value="tarjeta">Tarjeta</option>
+                            <option value="efectivo">Efectivo</option>
+                        </select>
+                    </div>
+
+                    <div id="efectivo-section" style="display:none">
+                        <div class="form-group">
+                            <label>Dinero entregado (€)</label>
+                            <input type="number" id="dinero_entregado" step="0.01" oninput="calcularCambio()" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:5px; font-size:1rem">
+                        </div>
+                        <h3>Cambio: <span id="cambio">0.00</span>€</h3>
+                    </div>
+
+                    <button style="margin-top:15px" onclick="cobrar()">💰 Cobrar</button>
+                    <p id="venta-msg" class="success"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        if (!localStorage.getItem("usuario_nombre")) window.location.href = "index.html";
+        document.getElementById("bienvenida").textContent = localStorage.getItem("usuario_nombre");
+
+        let productos = [];
+        let lineas = [];
+
+        async function cargarProductos() {
+            productos = await getProductos();
+            mostrarResultados(productos);
+        }
+
+        function buscarProducto() {
+            const q = document.getElementById("buscador").value.toLowerCase();
+            const filtrados = productos.filter(p =>
+                p.nombre.toLowerCase().includes(q) || p.codigo.toLowerCase().includes(q)
+            );
+            mostrarResultados(filtrados);
+        }
+
+        function mostrarResultados(lista) {
+            const div = document.getElementById("resultados");
+            div.innerHTML = "";
+            lista.forEach(p => {
+                div.innerHTML += `
+                    <div style="background:white; padding:12px; border-radius:5px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.1); cursor:pointer" onclick="añadirLinea(${p.id}, '${p.nombre}', ${p.precio})">
+                        <div>
+                            <strong>${p.codigo}</strong> - ${p.nombre}
+                            <span style="color:#666; font-size:0.9rem"> (Stock: ${p.stock})</span>
+                        </div>
+                        <strong>${p.precio}€</strong>
+                    </div>`;
+            });
+        }
+
+        function añadirLinea(id, nombre, precio) {
+            const existente = lineas.find(l => l.producto_id === id);
+            if (existente) {
+                existente.cantidad++;
+            } else {
+                lineas.push({ producto_id: id, nombre, cantidad: 1, precio_unitario: precio });
+            }
+            renderTicket();
+        }
+
+        function quitarLinea(id) {
+            lineas = lineas.filter(l => l.producto_id !== id);
+            renderTicket();
+        }
+
+        function renderTicket() {
+            const tbody = document.getElementById("ticket");
+            tbody.innerHTML = "";
+            let total = 0;
+            lineas.forEach(l => {
+                total += l.cantidad * l.precio_unitario;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${l.nombre}</td>
+                        <td>${l.cantidad}</td>
+                        <td>${(l.cantidad * l.precio_unitario).toFixed(2)}€</td>
+                        <td><button class="danger" style="width:auto; padding:5px 10px" onclick="quitarLinea(${l.producto_id})">✕</button></td>
+                    </tr>`;
+            });
+            document.getElementById("total").textContent = total.toFixed(2);
+            calcularCambio();
+        }
+
+        function toggleEfectivo() {
+            const tipo = document.getElementById("tipo_pago").value;
+            document.getElementById("efectivo-section").style.display = tipo === "efectivo" ? "block" : "none";
+        }
+
+        function calcularCambio() {
+            const total = parseFloat(document.getElementById("total").textContent);
+            const entregado = parseFloat(document.getElementById("dinero_entregado").value) || 0;
+            const cambio = entregado - total;
+            document.getElementById("cambio").textContent = cambio >= 0 ? cambio.toFixed(2) : "0.00";
+        }
+
+        async function cobrar() {
+            if (lineas.length === 0) {
+                alert("Añade al menos un producto");
+                return;
+            }
+            const usuario_id = parseInt(localStorage.getItem("usuario_id"));
+            const tipo_pago = document.getElementById("tipo_pago").value;
+            const dinero_entregado = parseFloat(document.getElementById("dinero_entregado").value) || null;
+            const res = await crearVenta(usuario_id, tipo_pago, dinero_entregado, lineas);
+            if (res.venta_id) {
+                document.getElementById("venta-msg").textContent = `✅ Venta registrada. Cambio: ${res.cambio ? res.cambio.toFixed(2) + '€' : '-'}`;
+                lineas = [];
+                renderTicket();
+                cargarProductos();
+            }
+        }
+
+        cargarProductos();
+    </script>
+</body>
+</html>
