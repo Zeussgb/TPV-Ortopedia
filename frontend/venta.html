@@ -81,7 +81,7 @@
                 <table style="margin-top:10px">
                     <thead>
                         <tr>
-                            <th>Producto ID</th>
+                            <th>Producto</th>
                             <th>Cantidad</th>
                             <th>Precio unit.</th>
                             <th>Subtotal</th>
@@ -92,7 +92,7 @@
             lineas.forEach(l => {
                 html += `
                     <tr>
-                        <td>${l.producto_id}</td>
+                        <td>${l.nombre} (${l.codigo})</td>
                         <td>${l.cantidad}</td>
                         <td>${parseFloat(l.precio_unitario).toFixed(2)}€</td>
                         <td>${(l.cantidad * l.precio_unitario).toFixed(2)}€</td>

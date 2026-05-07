@@ -59,7 +59,12 @@ def get_venta(venta_id: int):
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM ventas WHERE id = %s", (venta_id,))
     venta = cursor.fetchone()
-    cursor.execute("SELECT * FROM lineas_venta WHERE venta_id = %s", (venta_id,))
+    cursor.execute("""
+        SELECT l.*, p.nombre, p.codigo, p.marca 
+        FROM lineas_venta l
+        JOIN productos p ON l.producto_id = p.id
+        WHERE l.venta_id = %s
+    """, (venta_id,))
     lineas = cursor.fetchall()
     cursor.close()
     conn.close()
