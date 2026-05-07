@@ -21,11 +21,19 @@
             <button style="width:auto" onclick="abrirModal()">+ Añadir producto</button>
         </div>
 
+        <!-- FILTRO POR MARCA -->
+        <div style="margin-bottom:15px">
+            <select id="filtro-marca" onchange="filtrarPorMarca()" style="padding:10px; border:1px solid #ddd; border-radius:5px; font-size:1rem">
+                <option value="">Todas las marcas</option>
+            </select>
+        </div>
+
         <table>
             <thead>
                 <tr>
                     <th>Código</th>
                     <th>Nombre</th>
+                    <th>Marca</th>
                     <th>Precio</th>
                     <th>Stock</th>
                     <th>Stock mínimo</th>
@@ -48,6 +56,10 @@
             <div class="form-group">
                 <label>Nombre</label>
                 <input type="text" id="nombre">
+            </div>
+            <div class="form-group">
+                <label>Marca (opcional)</label>
+                <input type="text" id="marca" placeholder="Ej: Orliman, Forxa...">
             </div>
             <div class="form-group">
                 <label>Precio (€)</label>
@@ -74,8 +86,27 @@
         if (!localStorage.getItem("usuario_nombre")) window.location.href = "index.html";
         document.getElementById("bienvenida").textContent = localStorage.getItem("usuario_nombre");
 
-        async function cargarProductos() {
-            const productos = await getProductos();
+        async function cargarProductos(marca = null) {
+            const productos = await getProductos(marca);
+            renderTabla(productos);
+        }
+
+        async function cargarMarcas() {
+            const res = await fetch("http://127.0.0.1:8000/productos/marcas");
+            const marcas = await res.json();
+            const select = document.getElementById("filtro-marca");
+            select.innerHTML = '<option value="">Todas las marcas</option>';
+            marcas.forEach(m => {
+                select.innerHTML += `<option value="${m}">${m}</option>`;
+            });
+        }
+
+        function filtrarPorMarca() {
+            const marca = document.getElementById("filtro-marca").value || null;
+            cargarProductos(marca);
+        }
+
+        function renderTabla(productos) {
             const tbody = document.getElementById("tabla-productos");
             tbody.innerHTML = "";
             productos.forEach(p => {
@@ -84,11 +115,12 @@
                     <tr>
                         <td>${p.codigo}</td>
                         <td>${p.nombre}</td>
+                        <td>${p.marca || '-'}</td>
                         <td>${p.precio}€</td>
                         <td>${alerta} ${p.stock}</td>
                         <td>${p.stock_minimo}</td>
                         <td>
-                            <button class="secondary" style="width:auto" onclick="editarProducto(${p.id}, '${p.codigo}', '${p.nombre}', ${p.precio}, ${p.stock}, ${p.stock_minimo})">Editar</button>
+                            <button class="secondary" style="width:auto" onclick="abrirModalEditar(${p.id}, '${p.codigo}', '${p.nombre}', ${p.precio}, ${p.stock}, ${p.stock_minimo}, '${p.marca || ''}')">Editar</button>
                             <button class="danger" style="width:auto" onclick="borrarProducto(${p.id})">Borrar</button>
                         </td>
                     </tr>`;
@@ -100,20 +132,24 @@
             document.getElementById("producto-id").value = "";
             document.getElementById("codigo").value = "";
             document.getElementById("nombre").value = "";
+            document.getElementById("marca").value = "";
             document.getElementById("precio").value = "";
             document.getElementById("stock").value = "";
             document.getElementById("stock_minimo").value = "";
+            document.getElementById("modal-error").textContent = "";
             document.getElementById("modal").classList.add("active");
         }
 
-        function editarProducto(id, codigo, nombre, precio, stock, stock_minimo) {
+        function abrirModalEditar(id, codigo, nombre, precio, stock, stock_minimo, marca) {
             document.getElementById("modal-titulo").textContent = "Editar producto";
             document.getElementById("producto-id").value = id;
             document.getElementById("codigo").value = codigo;
             document.getElementById("nombre").value = nombre;
+            document.getElementById("marca").value = marca;
             document.getElementById("precio").value = precio;
             document.getElementById("stock").value = stock;
             document.getElementById("stock_minimo").value = stock_minimo;
+            document.getElementById("modal-error").textContent = "";
             document.getElementById("modal").classList.add("active");
         }
 
@@ -125,36 +161,41 @@
             const id = document.getElementById("producto-id").value;
             const codigo = document.getElementById("codigo").value;
             const nombre = document.getElementById("nombre").value;
+            const marca = document.getElementById("marca").value || null;
             const precio = document.getElementById("precio").value;
             const stock = document.getElementById("stock").value;
             const stock_minimo = document.getElementById("stock_minimo").value;
 
             if (!codigo || !nombre || !precio || !stock || !stock_minimo) {
-                document.getElementById("modal-error").textContent = "Rellena todos los campos";
+                document.getElementById("modal-error").textContent = "Rellena todos los campos obligatorios";
                 return;
             }
 
             if (id) {
-                await editarProducto_api(id, codigo, nombre, precio, stock, stock_minimo);
+                await editarProducto_api(id, codigo, nombre, precio, stock, stock_minimo, marca);
             } else {
-                await crearProducto(codigo, nombre, precio, stock, stock_minimo);
+                await crearProducto(codigo, nombre, precio, stock, stock_minimo, marca);
             }
             cerrarModal();
             cargarProductos();
+            cargarMarcas();
         }
 
-        async function editarProducto_api(id, codigo, nombre, precio, stock, stock_minimo) {
-            await editarProducto(id, codigo, nombre, precio, stock, stock_minimo);
+        async function editarProducto_api(id, codigo, nombre, precio, stock, stock_minimo, marca) {
+            const params = `codigo=${codigo}&nombre=${nombre}&precio=${precio}&stock=${stock}&stock_minimo=${stock_minimo}${marca ? '&marca=' + marca : ''}`;
+            await fetch(`http://127.0.0.1:8000/productos/${id}?${params}`, { method: "PUT" });
         }
 
         async function borrarProducto(id) {
             if (confirm("¿Seguro que quieres borrar este producto?")) {
                 await eliminarProducto(id);
                 cargarProductos();
+                cargarMarcas();
             }
         }
 
         cargarProductos();
+        cargarMarcas();
     </script>
 </body>
 </html>

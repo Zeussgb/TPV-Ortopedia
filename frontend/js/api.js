@@ -7,20 +7,25 @@ async function login(nombre, password) {
     return await res.json();
 }
 
-async function getProductos() {
-    const res = await fetch(`${API_URL}/productos/`);
+async function getProductos(marca = null) {
+    const url = marca 
+        ? `${API_URL}/productos/?marca=${marca}` 
+        : `${API_URL}/productos/`;
+    const res = await fetch(url);
     return await res.json();
 }
 
-async function crearProducto(codigo, nombre, precio, stock, stock_minimo) {
-    const res = await fetch(`${API_URL}/productos/?codigo=${codigo}&nombre=${nombre}&precio=${precio}&stock=${stock}&stock_minimo=${stock_minimo}`, {
+async function crearProducto(codigo, nombre, precio, stock, stock_minimo, marca = null) {
+    const params = `codigo=${codigo}&nombre=${nombre}&precio=${precio}&stock=${stock}&stock_minimo=${stock_minimo}${marca ? '&marca=' + marca : ''}`;
+    const res = await fetch(`${API_URL}/productos/?${params}`, {
         method: "POST"
     });
     return await res.json();
 }
 
-async function editarProducto(id, codigo, nombre, precio, stock, stock_minimo) {
-    const res = await fetch(`${API_URL}/productos/${id}?codigo=${codigo}&nombre=${nombre}&precio=${precio}&stock=${stock}&stock_minimo=${stock_minimo}`, {
+async function editarProducto(id, codigo, nombre, precio, stock, stock_minimo, marca = null) {
+    const params = `codigo=${codigo}&nombre=${nombre}&precio=${precio}&stock=${stock}&stock_minimo=${stock_minimo}${marca ? '&marca=' + marca : ''}`;
+    const res = await fetch(`${API_URL}/productos/${id}?${params}`, {
         method: "PUT"
     });
     return await res.json();
